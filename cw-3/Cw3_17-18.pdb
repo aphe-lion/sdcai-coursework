@@ -1,0 +1,126 @@
+% consult('Cw3_17-18.pdb').
+%------ DIRECTIVES ...
+:- set_prolog_flag(toplevel_print_anon, false).
+:- set_prolog_flag(toplevel_print_options, [max_depth(100), portray(true)]).
+
+% I have added this directive because the above did
+% not  produce the desired effect on my computer. 
+
+:- set_prolog_flag(
+  answer_write_options, 
+  [max_depth(100), portray(true), priority(699), spacing(next_argument)]
+).
+
+%------ PEOPLE AND COLOURS ...
+people([a, b, c]).
+cols([green, red, yellow]).
+
+%------ THE PREDICATE is_element/2 ...
+is_element(E,[E|_]).
+is_element(E,[_|T]) :- is_element(E,T).
+
+%------ TASKS ...
+%------ Task 1 - allhousepairs/1 ...
+
+% 1 - The Template, a "house pair", consisting of a tuple containing a person and colour
+% 2 - The Goal - contains the variables used to generate pemutations of the Template
+% 3 - Unifies P with all elements in the list unified with XS
+% 4 - Unifies C with all elements in the list unifies with Ys
+% 5 - The Bag, unified with a list of all Template permutations
+
+allhousepairs(Ps) :- 
+    bagof(
+        p(P, C),                            % 1
+        (                                   % 2
+           (people(Xs), is_element(P, Xs)), % 3
+           (cols(Ys), is_element(C, Ys))    % 4
+        ), 
+        Ps                                  % 5
+    ).
+    
+%------ Task 2 - all\_triplets/1 ...
+
+% 1 - The Template, a housing triplet with each a unique name for each variable
+% 2 - The Goal (entirety)
+
+% 3 - The Goal (elements) - takes three houses from the list of houses unified with Ps
+% 4 - Unifies a list of houses with Ps
+% 5 - The first housing triplet
+% 6 - The second housing triplet
+% 7 - The third housing triplet
+
+% 8 - The Goal (constraints) - checks uniquness of persons and colours
+% 9 - Checks that a one person does not own multiple houses
+% 10 - Checks that none of the houses are the same colour
+
+% 11 - The Bag, unified with a list of all Template permutations
+
+all_triplets(Ts) :-
+    bagof(
+        (p(P1, C1), p(P2, C2), p(P3, C3)),    % 1
+        (                                     % 2
+            (                                 % 3
+                allhousepairs(Ps),            % 4
+                is_element(p(P1, C1), Ps),    % 5
+                is_element(p(P2, C2), Ps),    % 6
+                is_element(p(P3, C3), Ps)     % 7
+            ),
+            (                                 % 8
+              (P1 \= P2, P2 \= P3, P3 \= P1), % 9
+              (C1 \= C2, C2 \= C3, C3 \= C1)  % 10
+            )
+       ),
+       Ts                                     % 11
+   ).
+
+%------ Task 3 - lives_pattern/3
+
+% 1 - Attempts to unify Person and Colour with the person and colour of the first house
+% 2 - Attempts to unify Person and Colour with the person and colour of the second house
+% 3 - Attempts to unify Person and Colour with the person and colour of the third house
+
+lives_pattern((p(Person, Colour), _, _), Colour, Person). % 1
+lives_pattern((_, p(Person, Colour), _), Colour, Person). % 2
+lives_pattern((_, _, p(Person, Colour)), Colour, Person). % 3
+
+%------ Task 4 - house info1/1
+%  Verify that "A's house is to the right of the yellow house"
+
+% 1 - When the first house is yellow, A may live in the second house...
+% 2 - ... or he may live in the third
+% 3 - If the second house is yellow, he must live in third. 
+
+house_info1((p(_, C1), p(P2, C2), p(P3, _))) :-
+    (C1 = yellow, P2 = a); % 1
+    (C1 = yellow, P3 = a); % 2
+    (C2 = yellow, P3 = a). % 3
+   
+%------ Task 5 - house_info2/1
+% Verify that "B lives in the red house"
+
+% 1 - Check that the house p(red, b) exists
+
+house_info2((p(P1, C1), p(P2, C2), p(P3, C3))) :-
+    lives_pattern((p(P1, C1), p(P2, C2), p(P3, C3)), red, b). % 1
+
+%------ Task 6 - house_info3/1
+% Verify that "The green house is not number 3"
+
+% 1 - The colour of the third house is not green
+
+house_info3((p(_, _), p(_, _), p(_, C3))) :-
+    C3 \== green. % 1
+
+%------ Task 7 - house_info3/1
+
+% 1 - Check the given housing triplet against house_info1
+% 2 - Check the given housing triplet against house_info2
+% 3 - Check the given housing triplet against house_info3
+
+house_info((p(P1, C1), p(P2, C2), p(P3, C3))) :-
+    house_info1((p(P1, C1), p(P2, C2), p(P3, C3))), % 1
+    house_info2((p(P1, C1), p(P2, C2), p(P3, C3))), % 2
+    house_info3((p(P1, C1), p(P2, C2), p(P3, C3))). % 4
+
+%------ Task 8
+% Task 8 requests an interactive session

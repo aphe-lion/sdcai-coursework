@@ -1,0 +1,1302 @@
+\documentclass[11pt]{article}
+
+% Change page boundaries
+\usepackage[top=3cm, bottom=3cm, left=3cm, right=3cm]{geometry}
+
+% Header and footer customisation
+\usepackage{fancyhdr}
+\pagestyle{fancyplain}
+\usepackage{lastpage}
+\usepackage{pdflscape}
+
+% Reset headers and footers
+\fancyhf{}
+
+% Headers
+\lhead{SDCAI CW 1}
+\rhead{Text Magnification Tool}
+
+% Footers
+\renewcommand{\footrulewidth}{0.4pt}
+\lfoot{Tom Mitchell}
+\cfoot{\thepage\ of \pageref{LastPage}}
+\rfoot{16010488}
+
+% Remove paragraph indenting
+\setlength{\parindent}{0pt}
+
+
+% BEGIN
+\begin{document}
+
+% TITLE PAGE
+\begin{titlepage}
+\newgeometry{top=5cm, bottom=5cm, left=3cm, right=3cm}
+\begin{center}
+
+\huge{Symbolic and Declarative Computing \& AI} \\
+\Huge{\textbf{Haskell Programming Coursework 1}} \\
+%\vspace{7em}
+
+\vfill
+\huge{\textit{Text Magnification Tool}} \\
+
+
+\vfill
+\LARGE{Tom Mitchell} \\
+\LARGE{16010488} \\
+\LARGE{AY 2017 - 2018}
+
+\end{center}
+\end{titlepage}
+
+
+% CONTENTS
+\newgeometry{top=3cm, bottom=3cm, left=3cm, right=3cm}
+\tableofcontents
+\newpage
+
+\section{The application operator}
+{\verb|$|} is the "application operator", which I am using to replace parenthesis and improve code readability. For example, the two lines of code below are equivalent.
+\begin{verbatim}
+Hugs> (+ 10) (sum ((\n -> [1..n]) 3))
+16
+Hugs> (+ 10) $ sum $ (\n -> [1..n]) 3
+16
+\end{verbatim}
+
+% TASKS
+\section{Tasks}
+
+\subsection{Task 1 - capital}
+\textbf{Source code:}
+\begin{verbatim}
+capital :: Char -> Char                       
+capital c                                    
+  | isLower   = capitalise c                   
+  | otherwise = c                             
+  where 
+  isLower    = ('a' <= c) && (c <= 'z')
+  capitalise = (\c -> chr $ ord c - 32)
+\end{verbatim}
+
+\textbf{Explanation:} \\
+This function is required to return a character based on what "sort" of character is given as input. If input {\verb|c|} is a lowercase letter, we return a capitalised version of it. If it is not, we return {\verb|c|}. \\
+
+A predicate {\verb|isLower|} is defined, which returns a {\verb|Bool|} depending on whether {\verb|c|} is within the "lowercase range". In Haskell, the {\verb|Char|} datatype derives the {\verb|Ord|} typeclass, which allows us to use "order comparison operators" (such as {\verb|<|},{\verb|>|},{\verb|<=|} and {\verb|>=|}) to compare characters (as they are ordered). {\verb|isLower|} returns {\verb|True|} if {\verb|c|} is greater than or equal to {\verb|'a'|}, and less than or equal to {\verb|'z'|} (and so, is a lowercase letter). \\
+
+A lambda function {\verb|capitalise|} is also defined. Two facts must be considered; first, that Haskell stores all character data using Unicode. Second, that given a character in the "lowercase" range, we can capitalise it by finding the character 32 positions before it in the "Unicode ordering system". The function {\verb|capitalise|} takes the "Unicode ordinal" of a character with {\verb|ord :: Char -> Int|}, subtracts 32, and converts this {\verb|Int|} back to a {\verb|Char|} with {\verb|chr :: Int -> Char|}. \\
+
+{\verb|capital|} uses guards to implement branching behaviour. It first checks if {\verb|c|} is lowercase with {\verb|isLower|}. If this is true, we return {\verb|capitalise c|}, a capitalised version of {\verb|c|}. If it is not, we return {\verb|c|}. \\
+
+\newpage
+\textbf{Testing:}
+\begin{verbatim}
+Bigtext> capital 'a'
+'A'
+Bigtext> capital 'z'
+'Z'
+Bigtext> capital 'A'
+'A'
+Bigtext> capital 'Z'
+'Z'
+Bigtext> capital '\''
+'\''
+Bigtext> capital '{'
+'{'
+\end{verbatim}
+
+\subsection{Task 2}
+\subsubsection{letter}
+\textbf{Source code:}\\
+Due to the length of this function, I have chosen not to include the source code in this section of the report. Please see the appendix of this document for the full definition. \\
+
+\textbf{Explanation:}\\
+This function was required to generate the "rows of pixels" used to represent a magnified version of the input character. Lowercase letters would return the "rows" for their uppercase equivalent. \\
+
+Pattern matching is used to define a case for every uppercase letter, symbol and digit I felt was appropriate for this task. Each pattern's return value was a list of strings used  to represent the magnified version of the letter. \\
+
+To account for lowercase characters, a "generic" pattern was defined after all the others. This is to ensure that the pattern is only matched once all other patterns have failed to match. The return value of this generic pattern is the result of a recursive call to {\verb|letter|} with {\verb|capital c|} as an argument. This capitalises the character, which will definitely (assuming {\verb|c|} is a lowercase letter) match with one of the patterns defined in {\verb|letter|}. \\
+
+However, one drawback of this approach was that if a character that could not be capitalised and did not have a pattern defined for it was given as input, the function would recurse infinitely. For example, a null terminator ({\verb|'\NUL'|}) would cause this behaviour.  \\
+
+\newpage
+\textbf{Testing:}
+\begin{verbatim}
+Bigtext> letter 'c'
+[" CCCC","C    ","C    ","C    ","C    ","C    "," CCCC"]
+Bigtext> letter 'C'
+[" CCCC","C    ","C    ","C    ","C    ","C    "," CCCC"]
+Bigtext> letter '7'
+["77777","    7","   7 ","   7 ","  7  "," 7   "," 7   "]
+Bigtext> letter '#'
+["  # #"," # # ","#####"," # # ","#####"," # # ","# #  "]
+\end{verbatim}
+
+
+\subsubsection{appendNewlineChar}
+\textbf{Source code:}
+\begin{verbatim}
+appendNewlineChar :: String -> String
+appendNewlineChar s = s ++ "\n"
+\end{verbatim}
+
+
+\textbf{Explanation:}\\
+The function of {\verb|appendNewlineChar|} is very straight forward - it takes a string, and returns the same string with a newline character (\verb|'\n'|) appended to it. This is achieved using the list concatenation operator, {\verb|++|}, as in Haskell strings are considered lists of characters.\\
+
+\textbf{Testing:}
+\begin{verbatim}
+Bigtext> appendNewlineChar "test string"
+"test string\n"
+Bigtext> appendNewlineChar ""
+"\n"
+\end{verbatim}
+
+\subsubsection{letter\_as\_text}
+\textbf{Source code:}
+\begin{verbatim}
+letter_as_text :: Char -> String
+letter_as_text c = concat $ map appendNewlineChar $ letter c
+\end{verbatim}
+
+\textbf{Explanation:}\\
+This function generates a string that represents a magnified character. \\
+
+It achieves this by generating the "rows of pixels" required for the character, using {\verb|letter|}. To make the "final image" display correctly, it appends newlines to each member of the list (each "row") by mapping (with {\verb|map :: (a -> b) -> [a] -> [b]|}) {\verb|appendNewlineChar|} to the "list of rows". Finally, the resultant list is concatenated into a single string. \\
+
+\newpage
+\textbf{Testing:}
+\begin{verbatim}
+Bigtext> letter_as_text 'c'
+" CCCC\nC    \nC    \nC    \nC    \nC    \n CCCC\n"
+Bigtext> putStr $ letter_as_text 'c'
+ CCCC
+C    
+C    
+C    
+C    
+C    
+ CCCC
+ 
+Bigtext> letter_as_text '%'
+"%%   \n%%  %\n   % \n  %  \n %   \n%  %%\n   %%\n"
+Bigtext> putStr $ letter_as_text '%'
+%%   
+%%  %
+   % 
+  %  
+ %   
+%  %%
+   %%
+
+\end{verbatim}
+
+\subsection{Task 3 - (|++|)}
+\textbf{Source code:}
+\begin{verbatim}
+(|++|) :: [String] -> [String] -> [String]
+(|++|) (x:xs) (y:ys) = (x ++ y) : ((|++|) xs ys)
+(|++|) _ _           = []                       
+\end{verbatim}
+\textbf{Explanation:}\\
+This function is equivalent to {\verb|(zipWith (++))|}, albeit defined without the use of {\verb|zipWith|}. Given two lists, it "zips" the lists together, and concatenates the resultant pairs. \\
+
+First, the heads {\verb|x|} and {\verb|y|} are separated from the lists {\verb|xs|} and {\verb|ys|}. As we know the list heads will be of type {\verb|String|} ({\verb|[Char]|}), we use {\verb|++|} to concatenate them. We then use the cons operator ({\verb|:|}) to prepend this string to a list of strings generated by a recursive call to {\verb=(|++|) xs ys=}. This should be considered the general case of this recursive definition. \\
+
+A pattern of two wildcards is also defined, such that if either list does not match the {\verb|(head:tail)|} pattern, an empty list is returned. This pattern acts as a base case to the recursion described above, as the empty list is used to "seed" the list generated by this function, due to the property {\verb|'a':'b':'c':'d':[] == "abcd"|}.\\
+
+\newpage
+\textbf{Testing:}
+\begin{verbatim}
+Bigtext> (|++|) ["t1", "t2", "t3"] ["t4", "t5", "t6"]
+["t1t4","t2t5","t3t6"]
+Bigtext> (|++|) ["t1", "t2", "t3"] ["t4", "t5", "t6", "t7"]
+["t1t4","t2t5","t3t6"]
+Bigtext> (|++|) ["t1", "t2", "t3"] ["t4", "t5"]["t1t4","t2t5"]
+["t1t4","t2t5"]
+Bigtext> (|++|) ["t1", "t2"] ["t3", "t4", "t5"]
+["t1t3","t2t4"]
+Bigtext> (|++|) [] ["t1", "t2", "t3"]
+[]
+\end{verbatim}
+
+\subsection{Task 4}
+\subsubsection{insertSpace}
+\textbf{Source code:}
+\begin{verbatim}
+insertSpace :: MyWord -> MyWord
+insertSpace [] = []                                   
+insertSpace xs = init $ concat $ map (\c -> c:" ") xs
+\end{verbatim}
+
+\textbf{Explanation:}\\
+Insertspace generates a "spaced out" string by adding a space between every pair of consecutive characters. \\
+
+This functionality is implemented by creating a list of 2-character strings, each consisting of a character from {\verb|xs|} prepended to a space. This list of lists is concatenated, and all but the last element of the result is returned (the init of the list), as to account for the extra, unwanted space. \\
+
+I have also defined a pattern for an empty list, which returns an empty list. This is because you cannot "space out" an empty string, and because trying to perform the operations to do so will cause errors (an empty list has no init).\\
+
+\textbf{Testing:}
+\begin{verbatim}
+Bigtext> insertSpace "test"
+"t e s t"
+Bigtext> insertSpace "second test"
+"s e c o n d   t e s t"
+Bigtext> insertSpace ""
+""
+\end{verbatim}
+
+\newpage
+\subsubsection{big}
+\textbf{Source code:}\\
+Note that the line is only broken here so that it will fit neatly on the page. This is not the case in the Haskell source file.
+\begin{verbatim}
+big :: MyWord -> String
+big [] = []                                                                          
+big xs = concat $ map appendNewlineChar $ foldr1 (|++|) $ 
+                                                  map letter $ insertSpace xs
+\end{verbatim}
+
+\textbf{Explanation:}\\
+{\verb|big|} generates a string representing magnified text. \\
+
+First, we "space out" the input string, such that is more legible when magnified. A list of "rows of pixels" (lists of strings) is then generated, so that we have all the required parts to construct the magnified text. This is done by mapping {\verb|letter|} on to each character in the "spaced string". \\
+
+By definition, rows of the "final image" are a concatenation of the corresponding elements in the "rows of letters". The first "image row" is made up of all of all first "letter rows". To convert the "rows" from each letter into rows of the final "image", we fold {\verb=(|++|)=} (using\\ {\verb|foldr1 :: (a -> a -> a) -> [a] -> a|})   into the list of rows. Because appending is an associative operation, the direction of the fold does not matter. Once we have the "rows of pixels" for the final image, we append newline character to each, such that the "image" is displayed correctly. \\
+
+% \\
+%  \\
+
+Finally, the list of strings ("image rows") is concatenated into a single string.\\
+
+\textbf{Testing:}
+\begin{verbatim}
+Bigtext> big "test"
+"TTTTT     EEEEE      SSS      TTTTT\n
+   T       E         S   S       T  \n
+   T       E         S           T  \n
+   T       EEEEE      SSS        T  \n
+   T       E             S       T  \n
+   T       E         S   S       T  \n
+   T       EEEEE      SSS        T  \n"
+Bigtext> putStr $ big "test"
+TTTTT     EEEEE      SSS      TTTTT
+  T       E         S   S       T  
+  T       E         S           T  
+  T       EEEEE      SSS        T  
+  T       E             S       T  
+  T       E         S   S       T  
+  T       EEEEE      SSS        T  
+
+\end{verbatim}
+
+
+\newpage
+\subsection{Task 5}
+\subsubsection{getNextWord}
+\textbf{Source code:}
+\begin{verbatim}
+getNextWord = takeWhile (/=' ')
+\end{verbatim}
+
+\textbf{Explanation:}\\
+{\verb|getNextWord|} is defined by partial application as {\verb|takeWhile|} with a fixed predicated {\verb|(/ = ' ')|}. {\verb|takeWhile|} operates by checking each element of a list against a given predicate, combining them into a list until the predicate is not met. In this case, we are checking if the elements in xs are not equal to a space character. \\
+
+The result of this is that, given a string containing a sentence, {\verb|getFirstWord|} will return all the character prior to the first space - the first word.\\
+
+\textbf{Testing:}
+\begin{verbatim}
+Bigtext> getNextWord "test words go here"
+"test"
+Bigtext> getNextWord "some other words go here"
+"some"
+\end{verbatim}
+
+\subsubsection{dropFirstWord}
+\textbf{Source code:}
+\begin{verbatim}
+dropFirstWord xs
+  | noTail    = []                        
+  | otherwise = tail $ dropFirstWord' xs  
+  where 
+  dropFirstWord' = dropWhile (/= ' ')
+  noTail         = dropFirstWord' xs == []        
+\end{verbatim}
+
+\textbf{Explanation:}\\
+{\verb|dropFirstWord'|} applies the predicate {\verb|(/= ' '|) to each element (character) in {\verb|xs|} in turn. The first time the predicate is fulfilled, the current character and all characters after it are returned. Effectively, it drops characters from the list while the predicate is not fulfilled. If xs contains a sentence, the result will be the sentence with the first word dropped.\\
+
+The predicate {\verb|noTail|} returns a {\verb|Bool|} based on whether the result of {\verb|dropFirstWord'|} is an empty list. In context, this checks if the last word of the sentence has been dropped.\\
+
+Guards are used to change behaviour based on the outcome of {\verb|noTail|}. If {\verb|dropFirstWord' xs|} has no tail (it is an empty list), we cannot use the {\verb|tail|} function on its result, as this will cause pattern matching errors. In this case, we return an empty list. If the result does have a tail, we return the tail of the result. This is to strip the trailing space from the result.\\
+
+\newpage
+\textbf{Testing:}
+\begin{verbatim}
+Bigtext> dropFirstWord "test sentence"
+"sentence"
+Bigtext> dropFirstWord "test"
+""
+\end{verbatim}
+
+\subsubsection{magnify}
+\textbf{Source code:}
+\begin{verbatim}
+magnify :: Text -> String
+magnify [] = []                                                         -- a
+magnify xs = big (getNextWord xs) ++ "\n" ++ magnify (dropFirstWord xs) -- b     
+\end{verbatim}
+
+\textbf{Explanation:}\\
+{\verb|magnify|} generates a string representing magnified text, with each word on a new line.\\
+
+This is achieved by recursion. The first word in a string is "magnified" using {\verb|big|}. A newline character is appended to the resultant string. We then append the result of a recursive call to {\verb|magnify|}. Importantly, {\verb|dropFirstWord xs|} is used as the argument. The result of this is that with each recursive call, the "next" word in the string is magnified. \\
+
+When there are no more words in the string, an empty list is returned by {\verb|dropFirstWord|}, which seeds the final string returned by {\verb|magnify|} (similarly to how an empty list seeds the result of {\verb=(|++|}=}
+
+\newpage
+\textbf{Testing:}
+\begin{verbatim}
+Bigtext> magnify "test word" 
+"TTTTT     EEEEE      SSS      TTTTT\n
+   T       E         S   S       T  \n  
+   T       E         S           T  \n  
+   T       EEEEE      SSS        T  \n  
+   T       E             S       T  \n  
+   T       E         S   S       T  \n  
+   T       EEEEE      SSS        T  \n
+ \n
+ W   W      OOO      RRRR      DDDD \n
+ W   W     O   O     R   R     D   D\n
+ W   W     O   O     R   R     D   D\n
+ W   W     O   O     RRRR      D   D\n
+ W W W     O   O     R   R     D   D\n
+ W W W     O   O     R   R     D   D\n 
+  W W       OOO      R   R     DDDD \n
+ \n"
+Bigtext> putStr $ magnify "test word" 
+TTTTT     EEEEE      SSS      TTTTT
+  T       E         S   S       T  
+  T       E         S           T  
+  T       EEEEE      SSS        T  
+  T       E             S       T  
+  T       E         S   S       T  
+  T       EEEEE      SSS        T  
+
+W   W      OOO      RRRR      DDDD 
+W   W     O   O     R   R     D   D
+W   W     O   O     R   R     D   D
+W   W     O   O     RRRR      D   D
+W W W     O   O     R   R     D   D
+W W W     O   O     R   R     D   D
+ W W       OOO      R   R     DDDD 
+
+
+\end{verbatim}
+
+\newpage
+\subsection{Task 6}
+\subsubsection{hugeLetters}
+\textbf{Source code:}
+\begin{verbatim}
+hugeLetters :: Int -> Char -> [String]
+hugeLetters n c = concat $ map replicateN $ map concat $
+                                              map (map replicateN) $ letter c
+  where                                                                                  
+  replicateN = replicate n
+\end{verbatim}
+
+\textbf{Explanation:}\\
+I have defined a single function {\verb|replicateN|} by partial application as shorthand. The first argument to {\verb|replicate :: Int -> a -> [a]|} is how many times a given item will appear in the list it returns. This does not need to change at any point during the definition of {\verb|hugeLetters|}, so I have "fixed" it. \\
+
+Magnifying a letter involves "stretching" it on both the x and y axis. \\ 
+
+"Stretching" on the x axis entails increasing the length of each "row of pixels". {\verb|letter|} will give us the "rows" as a starting point for this operation. Mapping {\verb|map replicateN|} onto a list of strings applies {\verb|replicateN|} to each character in each string. This produces a list of lists of {\verb|n|} characters for each character in each string. When we map {\verb|concat|} onto these lists, the result is "rows of pixels" that have been "stretched" by factor {\verb|n|}.\\
+
+To "stretch" a character on the y axis, we must increase the number of rows. To do this, we replicate each "row" (as generated in the previous step) {\verb|n|} number of times. Finally, we concatenate the resultant list of lists into a single list.\\
+
+\newpage
+\textbf{Testing:}
+\begin{verbatim}
+Bigtext> hugeLetters 3 'c'
+["   CCCCCCCCCCCC",
+ "   CCCCCCCCCCCC",
+ "   CCCCCCCCCCCC",
+ "CCC            ",
+ "CCC            ",
+ "CCC            ",
+ "CCC            ",
+ "CCC            ",
+ "CCC            ",
+ "CCC            ",
+ "CCC            ",
+ "CCC            ",
+ "CCC            ",
+ "CCC            ",
+ "CCC            ",
+ "CCC            ",
+ "CCC            ",
+ "CCC            ",
+ "   CCCCCCCCCCCC",
+ "   CCCCCCCCCCCC",
+ "   CCCCCCCCCCCC"]
+\end{verbatim}
+
+\subsubsection{bigger}
+\textbf{Source code:}
+\begin{verbatim}
+bigger :: Int -> MyWord -> String
+bigger _ [] = []                                                                                    
+bigger n xs = concat $ map appendNewlineChar $ foldr1 (|++|) $ 
+                                         map (hugeLetters n) $ insertSpace xs
+\end{verbatim}
+
+\textbf{Explanation:}\\
+This function works identically to {\verb|big|}, but instead of using {\verb|letter|} to generate "rows of pixels", it uses {\verb|(hugeLetters n)|}.\\
+
+ Both functions generate a list of strings used to represent magnified characters, albeit on different scales. The logic of converting magnified characters into magnified text does not change depending on the scale of the magnification, hence the similarity between the definitions.\\
+
+\newpage
+\textbf{Testing:}
+\begin{verbatim}
+Bigtext> bigger 2 "big!"
+"BBBBBBBB            IIIIIIIIII            GGGGGGGG            !!!!    \n
+ BBBBBBBB            IIIIIIIIII            GGGGGGGG            !!!!    \n
+ BB      BB              II              GG                    !!!!    \n
+ BB      BB              II              GG                    !!!!    \n
+ BB      BB              II              GG                    !!!!    \n
+ BB      BB              II              GG                    !!!!    \n
+ BBBBBBBB                II              GG    GGGG            !!!!    \n
+ BBBBBBBB                II              GG    GGGG            !!!!    \n
+ BB      BB              II              GG      GG            !!!!    \n
+ BB      BB              II              GG      GG            !!!!    \n
+ BB      BB              II              GG      GG                    \n
+ BB      BB              II              GG      GG                    \n
+ BBBBBBBB            IIIIIIIIII            GGGGGGGG            !!!!    \n
+ BBBBBBBB            IIIIIIIIII            GGGGGGGG            !!!!    \n"
+Bigtext> putStr $ bigger 2 "test"
+TTTTTTTTTT          EEEEEEEEEE            SSSSSS            TTTTTTTTTT
+TTTTTTTTTT          EEEEEEEEEE            SSSSSS            TTTTTTTTTT
+    TT              EE                  SS      SS              TT    
+    TT              EE                  SS      SS              TT    
+    TT              EE                  SS                      TT    
+    TT              EE                  SS                      TT    
+    TT              EEEEEEEEEE            SSSSSS                TT    
+    TT              EEEEEEEEEE            SSSSSS                TT    
+    TT              EE                          SS              TT    
+    TT              EE                          SS              TT    
+    TT              EE                  SS      SS              TT    
+    TT              EE                  SS      SS              TT    
+    TT              EEEEEEEEEE            SSSSSS                TT    
+    TT              EEEEEEEEEE            SSSSSS                TT    
+
+\end{verbatim}
+
+\newpage
+\subsubsection{hugeMagnify}
+\textbf{Source code:}
+\begin{verbatim}
+hugeMagnify :: Int -> Text -> String
+hugeMagnify _ [] = []                                                                     
+hugeMagnify n xs = (bigger n $ getNextWord xs) ++ "\n" ++
+                                           (hugeMagnify n $ dropFirstWord xs)
+\end{verbatim}
+
+\textbf{Explanation:}\\
+Similar to the relation between {\verb|big|} and {\verb|bigger |}, this function works identically to {\verb|magnify|}, using {\verb|bigger|} to generate magnified text, instead of {\verb|big|}.\\
+
+\newpage
+\textbf{Testing:}
+\begin{verbatim}
+Bigtext> hugeMagnify 2 "a b"
+"  AAAAAA  \n
+   AAAAAA  \n
+ AA      AA\n
+ AA      AA\n
+ AA      AA\n
+ AA      AA\n
+ AA      AA\n
+ AA      AA\n
+ AAAAAAAAAA\n
+ AAAAAAAAAA\n
+ AA      AA\n
+ AA      AA\n
+ AA      AA\n
+ AA      AA\n
+ \n
+ BBBBBBBB  \n
+ BBBBBBBB  \n
+ BB      BB\n
+ BB      BB\n
+ BB      BB\n
+ BB      BB\n
+ BBBBBBBB  \n
+ BBBBBBBB  \n
+ BB      BB\n
+ BB      BB\n
+ BB      BB\n
+ BB      BB\n
+ BBBBBBBB  \n
+ BBBBBBBB  \n
+ \n"
+\end{verbatim}
+
+\newpage 
+% Change geometry
+\newgeometry{top=1.75cm, bottom=1.75cm, left=0.5cm, right=0.5cm}
+
+%Update actual head width to text width, as geometry doesn't do that
+\setlength{\headwidth}{\textwidth}
+
+\section{Appendix}
+\subsection{Source code listing}
+\begin{verbatim}
+module Bigtext where
+import Char
+import Hugs.Prelude
+
+----------------------------------------------------------
+-- Haskell Coursework 1 (2017-2018): text magnification --
+----------------------------------------------------------
+
+-- Author:            Tom Mitchell
+-- UB Number:         16010488
+
+----------------------------------------------------------
+
+----------------------------------------------------------
+{- Task 1 - capital -}
+
+{-
+a. Take an input Char, c.
+b. If isLower evaluates to True, return capitalise c.
+c. In any other case, return c.
+d. Returns True if c is in the range of 'a' and 'z', inclusive.
+e. Returns the Unicode character 32 positions before c.
+-}
+----------------------------------------------------------
+
+capital :: Char -> Char                       
+capital c                               -- a     
+  | isLower   = capitalise c            -- b       
+  | otherwise = c                       -- c      
+  where 
+  isLower    = ('a' <= c) && (c <= 'z') -- d
+  capitalise = (\c -> chr $ ord c - 32) -- e
+\end{verbatim}
+\newpage
+\begin{verbatim}
+----------------------------------------------------------
+{- Task 2 - letter, appendNewlineChar, letter_as_text -}
+
+{-
+a. Capital letters.
+b. Numbers.
+c. Punctuation and other characters.
+d. Accounts for lowercase letters via a recursive call.
+-}
+
+----------------------------------------------------------
+
+letter :: Char -> [String]
+letter 'A' = [" AAA ",     -- a
+              "A   A",
+              "A   A",
+              "A   A",
+              "AAAAA",
+              "A   A",
+              "A   A"]
+letter 'B' = ["BBBB ",
+              "B   B",
+              "B   B",
+              "BBBB ",
+              "B   B",
+              "B   B",
+              "BBBB "]
+letter 'C' = [" CCCC",
+              "C    ",
+              "C    ",
+              "C    ",
+              "C    ",
+              "C    ",
+              " CCCC"]
+letter 'D' = ["DDDD ",
+              "D   D",
+              "D   D",
+              "D   D",
+              "D   D",
+              "D   D",
+              "DDDD "]
+letter 'E' = ["EEEEE",
+              "E    ",
+              "E    ",
+              "EEEEE",
+              "E    ",
+              "E    ",
+              "EEEEE"]              
+
+\end{verbatim}
+\newpage
+\begin{verbatim}
+letter 'F' = ["FFFFF",
+              "F    ",
+              "F    ",
+              "FFFFF",
+              "F    ",
+              "F    ",
+              "F    "]
+letter 'G' = [" GGGG",
+              "G    ",
+              "G    ",
+              "G  GG",
+              "G   G",
+              "G   G",
+              " GGGG"]
+letter 'H' = ["H   H",
+              "H   H",
+              "H   H",
+              "HHHHH",
+              "H   H",
+              "H   H",
+              "H   H"]
+letter 'I' = ["IIIII",
+              "  I  ",
+              "  I  ",
+              "  I  ",
+              "  I  ",
+              "  I  ",
+              "IIIII"]               
+letter 'J' = [" JJJJ",
+              "    J",
+              "    J",
+              "    J",
+              "    J",
+              "J   J",
+              " JJJ "]               
+letter 'K' = ["K   K",
+              "K  K ",
+              "K K  ",
+              "KK   ",
+              "K K  ",
+              "K  K ",
+              "K   K"]               
+letter 'L' = ["L    ",
+              "L    ",
+              "L    ",
+              "L    ",
+              "L    ",
+              "L    ",
+              "LLLLL"]               
+                            
+\end{verbatim}
+\newpage
+\begin{verbatim}
+letter 'M' = ["M   M",
+              "MM MM",
+              "M M M",
+              "M M M",
+              "M   M",
+              "M   M",
+              "M   M"]               
+letter 'N' = ["N   N",
+              "NN  N",
+              "NN  N",
+              "N N N",
+              "N  NN",
+              "N  NN",
+              "N   N"] 
+letter 'O' = [" OOO ",
+              "O   O",
+              "O   O",
+              "O   O",
+              "O   O",
+              "O   O",
+              " OOO "]               
+letter 'P' = ["PPPP ",
+              "P   P",
+              "P   P",
+              "PPPP ",
+              "P    ",
+              "P    ",
+              "P    "]               
+letter 'Q' = [" QQQ ",
+              "Q   Q",
+              "Q   Q",
+              "Q   Q",
+              "Q   Q",
+              " QQQ ",
+              "    Q"]               
+letter 'R' = ["RRRR ",
+              "R   R",
+              "R   R",
+              "RRRR ",
+              "R   R",
+              "R   R",
+              "R   R"]
+letter 'S' = [" SSS ",
+              "S   S",
+              "S    ",
+              " SSS ",
+              "    S",
+              "S   S",
+              " SSS "]                            
+                                 
+\end{verbatim}
+\newpage
+\begin{verbatim}
+letter 'T' = ["TTTTT",
+              "  T  ",
+              "  T  ",
+              "  T  ",
+              "  T  ",
+              "  T  ",
+              "  T  "]               
+letter 'U' = ["U   U",
+              "U   U",
+              "U   U",
+              "U   U",
+              "U   U",
+              "U   U",
+              " UUU "] 
+letter 'V' = ["V   V",
+              "V   V",
+              "V   V",
+              "V   V",
+              " V V ",
+              " V V ",
+              "  V  "]               
+letter 'W' = ["W   W",
+              "W   W",
+              "W   W",
+              "W   W",
+              "W W W",
+              "W W W",
+              " W W "]
+letter 'X' = ["X   X",
+              "X   X",
+              " X X ",
+              "  X  ",
+              " X X ",
+              "X   X",
+              "X   X"]               
+letter 'Y' = ["Y   Y",
+              "Y   Y",
+              " Y Y ",
+              "  Y  ",
+              "  Y  ",
+              "  Y  ",
+              "  Y  "]               
+letter 'Z' = ["ZZZZZ",
+              "    Z",
+              "   Z ",
+              "  Z  ",
+              " Z   ",
+              "Z    ",
+              "ZZZZZ"]                          
+\end{verbatim}
+\newpage
+\begin{verbatim}
+letter '0' = [" 000 ", -- b
+              "0   0",
+              "0   0",
+              "0 0 0",
+              "0   0",
+              "0   0",
+              " 000 "]
+letter '1' = ["111  ",
+              "  1  ",
+              "  1  ",
+              "  1  ",
+              "  1  ",
+              "  1  ",
+              "11111"] 
+letter '2' = [" 222 ",
+              "2   2",
+              "    2",
+              "   2 ",
+              "  2  ",
+              " 2  ",
+              "22222"]
+letter '3' = ["3333 ",
+              "    3",
+              "    3",
+              "3333 ",
+              "    3",
+              "    3",
+              "3333 "]
+letter '4' = ["4  4 ",
+              "4  4 ",
+              "4  4 ",
+              "44444",
+              "   4 ",
+              "   4 ",
+              "   4 "] 
+letter '5' = ["55555",
+              "5    ",
+              "5    ",
+              "5555 ",
+              "    5",
+              "    5",
+              "5555 "]
+letter '6' = [" 666 ",
+              "6    ",
+              "6    ",
+              "6666 ",
+              "6   6",
+              "6   6",
+              " 666 "]
+\end{verbatim}
+\newpage
+\begin{verbatim}
+letter '7' = ["77777",
+              "    7",
+              "   7 ",
+              "   7 ",
+              "  7  ",
+              " 7   ",
+              " 7   "]
+letter '8' = [" 888 ",
+              "8   8",
+              "8   8",
+              " 888 ",
+              "8   8",
+              "8   8",
+              " 888 "]
+letter '9' = [" 999 ",
+              "9   9",
+              "9   9",
+              " 9999",
+              "    9",
+              "    9",
+              " 999 "]                                               
+letter '!' = [" !!  ", -- c
+              " !!  ",
+              " !!  ",
+              " !!  ",
+              " !!  ",
+              "     ",
+              " !!  "]
+letter '"' = ["\"\" \"\"",
+              "\"\" \"\"",
+              "     ",
+              "     ",
+              "     ",
+              "     ",
+              "     "]
+letter '#' = ["  # #",
+              " # # ",
+              "#####",
+              " # # ",
+              "#####",
+              " # # ",
+              "# #  "]              
+letter '$' = ["  $  ",
+              " $$$$",
+              "$ $  ",
+              " $$$ ",
+              "  $ $",
+              "$$$$ ",
+              "  $  "]                     
+\end{verbatim}
+\newpage
+\begin{verbatim}
+letter '%' = ["%%   ",
+              "%%  %",
+              "   % ",
+              "  %  ",
+              " %   ",
+              "%  %%",
+              "   %%"]              
+letter '&' = ["   &&",
+              " &&  ",
+              " &   ",
+              "& & &",
+              "&  & ",
+              "&  & ",
+              " && &"] 
+letter '\'' = ["  '' ",
+              "  '' ",
+              "     ",
+              "     ",
+              "     ",
+              "     ",
+              "     "]
+letter '(' = ["  (( ",
+              " (   ",
+              "(    ",
+              "(    ",
+              "(    ",
+              " (   ",
+              "  (( "]
+letter ')' = [" ))  ",
+              "   ) ",
+              "    )",
+              "    )",
+              "    )",
+              "   ) ",
+              " ))  "]
+letter '*' = ["  *  ",
+              "* * *",
+              " *** ",
+              "* * *",
+              "  *  ",
+              "     ",
+              "     "]
+letter '+' = ["     ",
+              "  +  ",
+              "  +  ",
+              "+++++",
+              "  +  ",
+              "  +  ",
+              "     "]        
+\end{verbatim}
+\newpage
+\begin{verbatim}
+letter ',' = ["     ",
+              "     ",
+              "     ",
+              "     ",
+              "     ",
+              "  ,, ",
+              " ,,  "]
+letter '-' = ["     ",
+              "     ",
+              "     ",
+              " --- ",
+              "     ",
+              "     ",
+              "     "]
+letter '.' = ["     ",
+              "     ",
+              "     ",
+              "     ",
+              "     ",
+              " ..  ",
+              " ..  "]
+letter '/' = ["    /",
+              "   / ",
+              "   / ",
+              "  /  ",
+              " /   ",
+              " /   ",
+              "/    "]
+letter ':' = ["     ",
+              " ::  ",
+              " ::  ",
+              "     ",
+              " ::  ",
+              " ::  ",
+              "     "]
+letter ';' = [" ;;  ",
+              " ;;  ",
+              "     ",
+              " ;;  ",
+              " ;;  ",
+              "  ;  ",
+              " ;   "]              
+letter '<' = ["     ",
+              "   <<",
+              " <<  ",
+              "<    ",
+              " <<  ",
+              "   <<",
+              "     "]
+\end{verbatim}
+\newpage
+\begin{verbatim}
+letter '=' = ["     ",
+              "     ",
+              "=====",
+              "     ",
+              "=====",
+              "     ",
+              "     "]
+letter '>' = ["     ",
+              ">>   ",
+              "  >> ",
+              "    >",
+              "  >> ",
+              ">>   ",
+              "     "]
+letter '?' = [" ??? ",
+              "?   ?",
+              "    ?",
+              "   ? ",
+              "  ?  ",
+              "     ",
+              "  ?  "]
+letter '@' = [" @@@ ",
+              "@   @",
+              "@  @@",
+              "@ @ @",
+              "@  @ ",
+              "@    ",
+              " @@@@"]
+letter '[' = ["[[[  ",
+              "[    ",
+              "[    ",
+              "[    ",
+              "[    ",
+              "[    ",
+              "[[[  "]
+letter '\\' = ["\\    ",
+              "\\    ",
+              " \\   ",
+              "  \\  ",
+              "   \\ ",
+              "    \\",
+              "    \\"]              
+letter ']' = ["  ]]]",
+              "    ]",
+              "    ]",
+              "    ]",
+              "    ]",
+              "    ]",
+              "  ]]]"]                 
+\end{verbatim}
+\newpage
+\begin{verbatim}
+letter '^' = ["  ^  ",
+              " ^ ^ ",
+              "^   ^",
+              "     ",
+              "     ",
+              "     ",
+              "     "]
+letter ' ' = ["     ",
+              "     ",
+              "     ",
+              "     ",
+              "     ",
+              "     ",
+              "     "]
+letter '{' = ["   {{",
+              "  {  ",
+              "  {  ",
+              "{{   ",
+              "  {  ",
+              "  {  ",
+              "   {{"]
+letter '|' = [" ||  ",
+              " ||  ",
+              " ||  ",
+              " ||  ",
+              " ||  ",
+              " ||  ",
+              " ||  "]
+letter '}' = ["}}   ",
+              "  }  ",
+              "  }  ",
+              "   }}",
+              "  }  ",
+              "  }  ",
+              "}}   "]
+letter '~' = ["     ",
+              "     ",
+              " ~   ",
+              "~ ~ ~",
+              "   ~ ",
+              "     ",
+              "     "]
+letter '¬' = ["     ",
+              "     ",
+              "     ",
+              "¬¬¬¬¬",
+              "    ¬",
+              "     ",
+              "     "]
+\end{verbatim}
+\newpage
+\begin{verbatim}
+letter '`' = [" ``  ",
+              "  `` ",
+              "     ",
+              "     ",
+              "     ",
+              "     ",
+              "     "]
+letter '_' = ["     ",
+              "     ",
+              "     ",
+              "     ",
+              "     ",
+              "     ",
+              "_____"]              
+letter c = letter $ capital c -- d
+
+----------------------------------------------------------
+
+{-
+a. Use list ([Char]) concatenation to append a string containing a newline character ("\n")
+-}
+
+----------------------------------------------------------
+
+appendNewlineChar :: String -> String
+appendNewlineChar s = s ++ "\n"       -- a
+
+----------------------------------------------------------
+
+{-
+a. Magnify character c, append newline chars to all strings in the resultant list
+   via mapping and concatenate the resultant list into a single string.
+-}
+
+----------------------------------------------------------
+
+letter_as_text :: Char -> String
+letter_as_text c = concat $ map appendNewlineChar $ letter c -- a
+\end{verbatim}
+\newpage
+\begin{verbatim}
+----------------------------------------------------------
+{- Task 3 - (|++|) -}
+
+{-
+a. Remove and concatenate the heads (x and y) of two lists xs and ys, 
+   append them to the list generated by the recursive call of (|++|) xs ys
+b. Return an empty list in the case that either list does not match the 
+   x:xs pattern
+-}
+
+(|++|) :: [String] -> [String] -> [String]
+(|++|) (x:xs) (y:ys) = (x ++ y) : ((|++|) xs ys) -- a
+(|++|) _ _           = []                        -- b
+
+----------------------------------------------------------
+{- Task 4 - insertSpace, big -}
+
+{- Type aliases -}
+type MyWord = String
+type Text = String
+
+----------------------------------------------------------
+
+{- 
+a. It makes no sense to "space out" an empty string, return the same empty list.
+b. Prepend each character in xs to a space, concatenate the result list of strings,
+   and drop the last character (a space)
+-}
+
+insertSpace :: MyWord -> MyWord
+insertSpace [] = []                                    -- a
+insertSpace xs = init $ concat $ map (\c -> c:" ") xs  -- b
+
+----------------------------------------------------------
+
+{-
+a. Empty strings cannot be magnified
+b. Generate all the "rows of pixels" required to represent the magnified string,
+   fold (|++|) into that list, append newlines to all the results,
+   and concatenate the list into a single string.
+-}
+
+big :: MyWord -> String
+big [] = []                                                                           -- a
+big xs = concat $ map appendNewlineChar $ foldr1 (|++|) $ map letter $ insertSpace xs -- b
+\end{verbatim}
+\newpage
+\begin{verbatim}
+----------------------------------------------------------
+{- Task 5 - magnify, getNextWord, dropFirstWord -}
+
+{-
+a. Take letters from xs one by one until a space is taken,
+   then concatenate all letters prior to the space and return them.
+   More abstractly, this returns the first word of a sentence
+   contained in xs.
+-}
+
+getNextWord = takeWhile (/=' ')
+
+----------------------------------------------------------
+
+{-
+a. If dropFirstWord xs is an empty list, eg, we dropped the
+   last word in the string, return an empty list.
+b. If we drop any word that is not the last, 
+   return the remainder of xs after having dropped the first word, 
+   and also removed the leading space.
+c. Evaluate elements from a list one by one - 
+   if the predicate "element is a not space" is not met, 
+   return the space and the rest of the string. 
+   If the character is not a space, disregard it.
+d. Return True if we drop the last word in the sentence - 
+   (the result of dropping the first word is an empty list).
+
+-}
+
+dropFirstWord xs
+  | noTail    = []                         -- a
+  | otherwise = tail $ dropFirstWord' xs   -- b
+  where 
+  dropFirstWord' = dropWhile (/= ' ')   -- c
+  noTail         = dropFirstWord' xs == [] -- d
+
+----------------------------------------------------------
+
+{-
+a. An empty string cannot be magnified
+b. Generate a string representing a magnified version of the first
+   word, append a newline char, and prepend this string to one generated
+   by a recursive call of magnify with xs without its first word as an argument
+-}
+
+magnify :: Text -> String
+magnify [] = []                                                         -- a
+magnify xs = big (getNextWord xs) ++ "\n" ++ magnify (dropFirstWord xs) -- b
+\end{verbatim}
+\newpage
+\begin{landscape}
+\begin{verbatim}
+----------------------------------------------------------
+{- Task 6a, 6b, 6c - hugeLetters, bigger, hugeMagnify -}
+
+{- 
+  Note that comments for bigger and hugemagnify are the same as 
+  big and magnify because the functions have almost identical definitions.
+-}
+
+{-
+a. Map replicateN onto every character in every string in the result of letter c, 
+   to "stretch" the characters width. Map replicateN onto the result of this to
+   "stretch" the characters height. Concatenate the result into a single string.
+b. Define replicateN by partial application.
+-}
+
+hugeLetters :: Int -> Char -> [String]
+hugeLetters n c = concat $ map replicateN $ map concat $ map (map replicateN) $ letter c -- a
+  where                                                                                  
+  replicateN = replicate n                                                               -- b
+
+----------------------------------------------------------
+
+{-
+a. Empty strings cannot be magnified.
+b. Generate all lines of "pixels" required to represent the mapnified string,
+   fold (|++|) into the list, append newlines to all the results and concatenate
+   the list into a single string.
+-}
+
+bigger :: Int -> MyWord -> String
+bigger _ [] = []                                                                                    -- a
+bigger n xs = concat $ map appendNewlineChar $ foldr1 (|++|) $ map (hugeLetters n) $ insertSpace xs -- b
+\end{verbatim}
+\end{landscape}
+\newpage
+\begin{verbatim}
+----------------------------------------------------------
+
+{-
+a. An empty string cannot be magnified.
+b. Generate a string representing a "huge magnified" version of the first word, 
+   append a newline char, and prepend this string to one generated by a recursive
+   call of hugeMagnify with xs without its first word as an argument.
+-}
+
+hugeMagnify :: Int -> Text -> String
+hugeMagnify _ [] = []                                                                         -- a
+hugeMagnify n xs = (bigger n $ getNextWord xs) ++ "\n" ++ (hugeMagnify n $ dropFirstWord xs)  -- b
+\end{verbatim}
+\end{document}
